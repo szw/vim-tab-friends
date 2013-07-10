@@ -1,2 +1,2 @@
-vim-tab-friends
-===============
+vim-tabfriends
+==============
