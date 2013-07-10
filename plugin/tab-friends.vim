@@ -1,12 +1,12 @@
-" Vim TabFriends - The Ultimate Buffer List
+" Vim TabFriends - Make buffers and tabs friendship ;)
 " Maintainer:   Szymon Wrozynski
-" Version:      2.0.9
+" Version:      3.0.0
 "
 " Installation:
-" Place in ~/.vim/plugin/tabfriends.vim or in case of Pathogen:
+" Place in ~/.vim/plugin/tab_friends.vim or in case of Pathogen:
 "
 "     cd ~/.vim/bundle
-"     git clone https://github.com/szw/vim-tabfriends.git
+"     git clone https://github.com/szw/vim-tab-friends.git
 "
 " License:
 " Copyright (c) 2013 Szymon Wrozynski <szymon@wrozynski.com>
@@ -16,67 +16,67 @@
 " Licensed under MIT License conditions.
 "
 " Usage:
-" https://github.com/szw/vim-tabfriends/blob/master/README.md
+" https://github.com/szw/vim-tab-friends/blob/master/README.md
 
-if exists('g:tabfriends_loaded')
+if exists('g:tab_friends_loaded')
   finish
 endif
-let g:tabfriends_loaded = 1
+let g:tab_friends_loaded = 1
 
-if !exists('g:tabfriends_height')
-  let g:tabfriends_height = 1
+if !exists('g:tab_friends_height')
+  let g:tab_friends_height = 1
 endif
 
-if !exists('g:tabfriends_max_height')
-  let g:tabfriends_max_height = 25
+if !exists('g:tab_friends_max_height')
+  let g:tab_friends_max_height = 25
 endif
 
-if !exists('g:tabfriends_show_unnamed')
-  let g:tabfriends_show_unnamed = 2
+if !exists('g:tab_friends_show_unnamed')
+  let g:tab_friends_show_unnamed = 2
 endif
 
-if !exists('g:tabfriends_set_default_mapping')
-    let g:tabfriends_set_default_mapping = 1
+if !exists('g:tab_friends_set_default_mapping')
+    let g:tab_friends_set_default_mapping = 1
 endif
 
-if !exists('g:tabfriends_default_mapping_key')
-    let g:tabfriends_default_mapping_key = '<F2>'
+if !exists('g:tab_friends_default_mapping_key')
+    let g:tab_friends_default_mapping_key = '<F2>'
 endif
 
-if !exists('g:tabfriends_cyclic_list')
-  let g:tabfriends_cyclic_list = 1
+if !exists('g:tab_friends_cyclic_list')
+  let g:tab_friends_cyclic_list = 1
 endif
 
-if !exists('g:tabfriends_max_jumps')
-  let g:tabfriends_max_jumps = 100
+if !exists('g:tab_friends_max_jumps')
+  let g:tab_friends_max_jumps = 100
 endif
 
 " 0 - no sort
 " 1 - chronological
 " 2 - alphanumeric
-if !exists('g:tabfriends_default_sort_order')
-  let g:tabfriends_default_sort_order = 1
+if !exists('g:tab_friends_default_sort_order')
+  let g:tab_friends_default_sort_order = 1
 endif
 
-command! -nargs=0 -range TabFriends :call <SID>tabfriends_toggle(0)
+command! -nargs=0 -range TabFriends :call <SID>tab_friends_toggle(0)
 
-if g:tabfriends_set_default_mapping
-  silent! exe 'nnoremap <silent>' . g:tabfriends_default_mapping_key . ' :TabFriends<CR>'
-  silent! exe 'vnoremap <silent>' . g:tabfriends_default_mapping_key . ' :TabFriends<CR>'
-  silent! exe 'inoremap <silent>' . g:tabfriends_default_mapping_key . ' <C-[>:TabFriends<CR>'
+if g:tab_friends_set_default_mapping
+  silent! exe 'nnoremap <silent>' . g:tab_friends_default_mapping_key . ' :TabFriends<CR>'
+  silent! exe 'vnoremap <silent>' . g:tab_friends_default_mapping_key . ' :TabFriends<CR>'
+  silent! exe 'inoremap <silent>' . g:tab_friends_default_mapping_key . ' <C-[>:TabFriends<CR>'
 endif
 
 au BufEnter * call <SID>add_tab_friend()
 
-let s:tabfriends_jumps = []
+let s:tab_friends_jumps = []
 au BufEnter * call <SID>add_jump()
 
 " toggled the buffer list on/off
-function! <SID>tabfriends_toggle(internal)
+function! <SID>tab_friends_toggle(internal)
   if !a:internal
-    let s:tabfriendstoggle = 1
+    let s:tab_toggle = 1
     if !exists("t:sort_order")
-      let t:sort_order = g:tabfriends_default_sort_order
+      let t:sort_order = g:tab_friends_default_sort_order
     endif
   endif
 
@@ -89,13 +89,13 @@ function! <SID>tabfriends_toggle(internal)
     else
       call <SID>kill(buflistnr, 0)
       if !a:internal
-        let t:tabfriends_start_window = winnr()
-        let t:tabfriends_winrestcmd = winrestcmd()
+        let t:tab_friends_start_window = winnr()
+        let t:tab_friends_winrestcmd = winrestcmd()
       endif
     endif
   elseif !a:internal
-    let t:tabfriends_start_window = winnr()
-    let t:tabfriends_winrestcmd = winrestcmd()
+    let t:tab_friends_start_window = winnr()
+    let t:tab_friends_winrestcmd = winrestcmd()
   endif
 
   let bufcount = bufnr('$')
@@ -106,7 +106,7 @@ function! <SID>tabfriends_toggle(internal)
   " create the buffer first & set it up
   exec 'silent! new __TAB_FRIENDS__'
   silent! exe "wincmd J"
-  silent! exe "resize" g:tabfriends_height
+  silent! exe "resize" g:tab_friends_height
   call <SID>set_up_buffer()
 
   let width = winwidth(0)
@@ -114,14 +114,14 @@ function! <SID>tabfriends_toggle(internal)
   " iterate through the buffers
 
   for i in range(1, bufcount)
-    if s:tabfriendstoggle && !exists('t:tabfriends_list[' . i . ']')
+    if s:tab_toggle && !exists('t:tab_friends_list[' . i . ']')
       continue
     endif
 
     let bufname = bufname(i)
 
-    if g:tabfriends_show_unnamed && !strlen(bufname)
-      if !((g:tabfriends_show_unnamed == 2) && !getbufvar(i, '&modified')) || (bufwinnr(i) != -1)
+    if g:tab_friends_show_unnamed && !strlen(bufname)
+      if !((g:tab_friends_show_unnamed == 2) && !getbufvar(i, '&modified')) || (bufwinnr(i) != -1)
         let bufname = '[' . i . '*No Name]'
       endif
     endif
@@ -147,11 +147,11 @@ function! <SID>tabfriends_toggle(internal)
   endfor
 
   " set up window height
-  if displayedbufs > g:tabfriends_height
-    if displayedbufs < g:tabfriends_max_height
+  if displayedbufs > g:tab_friends_height
+    if displayedbufs < g:tab_friends_max_height
       silent! exe "resize " . displayedbufs
     else
-      silent! exe "resize " . g:tabfriends_max_height
+      silent! exe "resize " . g:tab_friends_max_height
     endif
   endif
 
@@ -176,10 +176,10 @@ function! <SID>create_jumplines(buflist, activebufline)
     call add(buffers, bufentry.number)
   endfor
 
-  if s:tabfriendstoggle && exists("t:tabfriends_jumps")
-    let bufferjumps = t:tabfriends_jumps
+  if s:tab_toggle && exists("t:tab_friends_jumps")
+    let bufferjumps = t:tab_friends_jumps
   else
-    let bufferjumps = s:tabfriends_jumps
+    let bufferjumps = s:tab_friends_jumps
   endif
 
   let jumplines = []
@@ -238,14 +238,14 @@ function! <SID>kill(buflistnr, final)
   end
 
   if a:final
-    if exists("t:tabfriends_start_window")
-      silent! exe t:tabfriends_start_window . "wincmd w"
+    if exists("t:tab_friends_start_window")
+      silent! exe t:tab_friends_start_window . "wincmd w"
     endif
 
-    if exists("t:tabfriends_winrestcmd") && (winrestcmd() != t:tabfriends_winrestcmd)
-      silent! exe t:tabfriends_winrestcmd
+    if exists("t:tab_friends_winrestcmd") && (winrestcmd() != t:tab_friends_winrestcmd)
+      silent! exe t:tab_friends_winrestcmd
 
-      if winrestcmd() != t:tabfriends_winrestcmd
+      if winrestcmd() != t:tab_friends_winrestcmd
         wincmd =
       endif
     endif
@@ -264,7 +264,7 @@ function! <SID>set_up_buffer()
 
   if has('statusline')
     let &l:statusline = "TAB_FRIENDS"
-    if s:tabfriendstoggle
+    if s:tab_toggle
       let &l:statusline .= " [TAB]"
     else
       let &l:statusline .= " [ALL]"
@@ -333,7 +333,7 @@ function! <SID>set_up_buffer()
   map <silent> <buffer> <Home> :call <SID>move(1)<CR>
   map <silent> <buffer> <End> :call <SID>move(line("$"))<CR>
 
-  map <silent> <buffer> a :call <SID>toggle_tab_friends()<CR>
+  map <silent> <buffer> a :call <SID>toggle_tab()<CR>
   map <silent> <buffer> f :call <SID>detach_tab_friend()<CR>
   map <silent> <buffer> F :call <SID>delete_foreign_buffers()<CR>
 endfunction
@@ -351,9 +351,9 @@ endfunction
 
 function! <SID>compare_bufentries(a, b)
   if t:sort_order == 1
-    if s:tabfriendstoggle
-      if exists("t:tabfriends_list[" . a:a.number . "]") && exists("t:tabfriends_list[" . a:b.number . "]")
-        return t:tabfriends_list[a:a.number] - t:tabfriends_list[a:b.number]
+    if s:tab_toggle
+      if exists("t:tab_friends_list[" . a:a.number . "]") && exists("t:tab_friends_list[" . a:b.number . "]")
+        return t:tab_friends_list[a:a.number] - t:tab_friends_list[a:b.number]
       endif
     endif
     return a:a.number - a:b.number
@@ -399,10 +399,10 @@ function! <SID>display_list(displayedbufs, buflist, width)
     let width = a:width
 
     if width < (strlen(empty_list_message) + 2)
-      if strlen(empty_list_message) + 2 < g:tabfriends_max_width
+      if strlen(empty_list_message) + 2 < g:tab_friends_max_width
         let width = strlen(empty_list_message) + 2
       else
-        let width = g:tabfriends_max_width
+        let width = g:tab_friends_max_width
         let empty_list_message = strpart(empty_list_message, 0, width - 3) . "…"
       endif
       silent! exe "vert resize " . width
@@ -436,8 +436,8 @@ function! <SID>display_list(displayedbufs, buflist, width)
       au! TabFriendsLeave BufLeave
       noremap <silent> <buffer> q :q<CR>
       noremap <silent> <buffer> a <Nop>
-      if g:tabfriends_set_default_mapping
-        silent! exe 'noremap <silent><buffer>' . g:tabfriends_default_mapping_key . ' :q<CR>'
+      if g:tab_friends_set_default_mapping
+        silent! exe 'noremap <silent><buffer>' . g:tab_friends_default_mapping_key . ' :q<CR>'
       endif
     endif
 
@@ -517,13 +517,13 @@ endfunction
 function! <SID>goto(line)
   if b:bufcount < 1 | return | endif
   if a:line < 1
-    if g:tabfriends_cyclic_list
+    if g:tab_friends_cyclic_list
       call <SID>goto(b:bufcount - a:line)
     else
       call cursor(1, 1)
     endif
   elseif a:line > b:bufcount
-    if g:tabfriends_cyclic_list
+    if g:tab_friends_cyclic_list
       call <SID>goto(a:line - b:bufcount)
     else
       call cursor(b:bufcount, 1)
@@ -571,13 +571,13 @@ function! <SID>load_buffer(...)
 endfunction
 
 function! <SID>load_buffer_into_window(winnr)
-  if exists("t:tabfriends_start_window")
-    let old_start_window = t:tabfriends_start_window
-    let t:tabfriends_start_window = a:winnr
+  if exists("t:tab_friends_start_window")
+    let old_start_window = t:tab_friends_start_window
+    let t:tab_friends_start_window = a:winnr
   endif
   call <SID>load_buffer()
   if exists("old_start_window")
-    let t:tabfriends_start_window = old_start_window
+    let t:tab_friends_start_window = old_start_window
   endif
 endfunction
 
@@ -602,7 +602,7 @@ function! <SID>delete_buffer()
       call <SID>kill(0, 0)
     endif
     exec ":bdelete " . nr
-    call <SID>tabfriends_toggle(1)
+    call <SID>tab_friends_toggle(1)
   endif
 endfunction
 
@@ -625,18 +625,18 @@ function! <SID>delete_hidden_buffers()
   endfor
   call <SID>kill(0, 0)
   call <SID>keep_buffers_for_keys(visible)
-  call <SID>tabfriends_toggle(1)
+  call <SID>tab_friends_toggle(1)
 endfunction
 
 " deletes all foreign (not tab friend) buffers
 function! <SID>delete_foreign_buffers()
   let friends = {}
   for t in range(1, tabpagenr('$'))
-    silent! call extend(friends, gettabvar(t, 'tabfriends_list'))
+    silent! call extend(friends, gettabvar(t, 'tab_friends_list'))
   endfor
   call <SID>kill(0, 0)
   call <SID>keep_buffers_for_keys(friends)
-  call <SID>tabfriends_toggle(1)
+  call <SID>tab_friends_toggle(1)
 endfunction
 
 function! <SID>get_selected_buffer()
@@ -645,45 +645,45 @@ function! <SID>get_selected_buffer()
 endfunction
 
 function! <SID>add_tab_friend()
-  if !exists('t:tabfriends_list')
-    let t:tabfriends_list = {}
+  if !exists('t:tab_friends_list')
+    let t:tab_friends_list = {}
   endif
 
   let current = bufnr('%')
 
-  if !exists("t:tabfriends_list[" . current . "]") && getbufvar(current, '&modifiable') && getbufvar(current, '&buflisted') && current != bufnr("__TAB_FRIENDS__")
-    let t:tabfriends_list[current] = len(t:tabfriends_list) + 1
+  if !exists("t:tab_friends_list[" . current . "]") && getbufvar(current, '&modifiable') && getbufvar(current, '&buflisted') && current != bufnr("__TAB_FRIENDS__")
+    let t:tab_friends_list[current] = len(t:tab_friends_list) + 1
   endif
 endfunction
 
 function! <SID>add_jump()
-  if !exists("t:tabfriends_jumps")
-    let t:tabfriends_jumps = []
+  if !exists("t:tab_friends_jumps")
+    let t:tab_friends_jumps = []
   endif
 
   let current = bufnr('%')
 
   if getbufvar(current, '&modifiable') && getbufvar(current, '&buflisted') && current != bufnr("__TAB_FRIENDS__")
-    call add(s:tabfriends_jumps, current)
-    let s:tabfriends_jumps = <SID>unique_list(s:tabfriends_jumps)
+    call add(s:tab_friends_jumps, current)
+    let s:tab_friends_jumps = <SID>unique_list(s:tab_friends_jumps)
 
-    if len(s:tabfriends_jumps) > g:tabfriends_max_jumps + 1
-      unlet s:tabfriends_jumps[0]
+    if len(s:tab_friends_jumps) > g:tab_friends_max_jumps + 1
+      unlet s:tab_friends_jumps[0]
     endif
 
-    call add(t:tabfriends_jumps, current)
-    let t:tabfriends_jumps = <SID>unique_list(t:tabfriends_jumps)
+    call add(t:tab_friends_jumps, current)
+    let t:tab_friends_jumps = <SID>unique_list(t:tab_friends_jumps)
 
-    if len(t:tabfriends_jumps) > g:tabfriends_max_jumps + 1
-      unlet t:tabfriends_jumps[0]
+    if len(t:tab_friends_jumps) > g:tab_friends_max_jumps + 1
+      unlet t:tab_friends_jumps[0]
     endif
   endif
 endfunction
 
-function! <SID>toggle_tab_friends()
-  let s:tabfriendstoggle = !s:tabfriendstoggle
+function! <SID>toggle_tab()
+  let s:tab_toggle = !s:tab_toggle
   call <SID>kill(0, 0)
-  call <SID>tabfriends_toggle(1)
+  call <SID>tab_friends_toggle(1)
 endfunction
 
 function! <SID>toggle_order()
@@ -695,13 +695,13 @@ function! <SID>toggle_order()
     endif
 
     call <SID>kill(0, 0)
-    call <SID>tabfriends_toggle(1)
+    call <SID>tab_friends_toggle(1)
   endif
 endfunction
 
 function! <SID>detach_tab_friend()
   let nr = <SID>get_selected_buffer()
-  if exists('t:tabfriends_list[' . nr . ']')
+  if exists('t:tab_friends_list[' . nr . ']')
     let selected_buffer_window = bufwinnr(nr)
     if selected_buffer_window != -1
       call <SID>move("down")
@@ -715,8 +715,8 @@ function! <SID>detach_tab_friend()
     else
       call <SID>kill(0, 0)
     endif
-    call remove(t:tabfriends_list, nr)
-    call <SID>tabfriends_toggle(1)
+    call remove(t:tab_friends_list, nr)
+    call <SID>tab_friends_toggle(1)
   endif
 endfunction
 
