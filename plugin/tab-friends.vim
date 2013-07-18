@@ -286,16 +286,19 @@ endfunction
 
 function! <SID>keypressed(key)
   if s:nopmode
-    if a:key ==# "a"
+    if (a:key ==# "a") && !s:searchmode
       call <SID>toggle_tab()
     end
-    if s:searchmode
-      if a:key ==# "BS"
+
+    if a:key ==# "BS"
+      if s:searchmode
         if empty(s:search_letters)
           call <SID>clear_searchmode()
         else
           call <SID>remove_search_letter()
         endif
+      elseif !empty(s:search_letters)
+        call <SID>clear_searchmode()
       endif
     endif
     return
