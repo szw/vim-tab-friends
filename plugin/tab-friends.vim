@@ -386,23 +386,24 @@ function! <SID>set_up_buffer()
   setlocal nonumber
 
   if has('statusline')
-    let &l:statusline = "TAB_FRIENDS"
+    setl stl="hello "
+    let &l:statusline = "TAB♡FRIENDS"
     if s:tab_toggle
-      let &l:statusline .= " [TAB]"
+      let &l:statusline .= " │ ∙"
     else
-      let &l:statusline .= " [ALL]"
+      let &l:statusline .= " │ ∷"
     endif
 
     if exists("t:sort_order")
       if t:sort_order == 1
-        let &l:statusline .= " [123]"
+        let &l:statusline .= " │ ₁²₃"
       elseif t:sort_order == 2
-        let &l:statusline .= " [ABC]"
+        let &l:statusline .= " │ авс"
       endif
     endif
 
     if s:searchmode || !empty(s:search_letters)
-      let &l:statusline .= " →[" . join(s:search_letters, "")
+      let &l:statusline .= " │ →[" . join(s:search_letters, "")
 
       if s:searchmode
         let &l:statusline .= "_"
