@@ -1,6 +1,6 @@
 " Vim TabFriends - Make buffers and tabs friendship ;)
 " Maintainer:   Szymon Wrozynski
-" Version:      3.0.0
+" Version:      3.0.1
 "
 " Installation:
 " Place in ~/.vim/plugin/tab_friends.vim or in case of Pathogen:
@@ -75,6 +75,9 @@ au BufEnter * call <SID>add_jump()
 function! <SID>tab_friends_toggle(internal)
   if !a:internal
     let s:tab_toggle = 1
+    let s:nopmode = 0
+    let s:search_letters = []
+    let s:searchmode = 0
     if !exists("t:sort_order")
       let t:sort_order = g:tab_friends_default_sort_order
     endif
@@ -130,6 +133,10 @@ function! <SID>tab_friends_toggle(internal)
       " adapt width and/or buffer name
       if strlen(bufname) + 6 > width
         let bufname = '…' . strpart(bufname, strlen(bufname) - width + 7)
+      endif
+
+      if !empty(s:search_letters) && !(bufname =~? "\\m" . join(s:search_letters, ".\\{-}"))
+        continue
       endif
 
       let bufname = <SID>decorate_with_indicators(bufname, i)
@@ -198,6 +205,31 @@ function! <SID>create_jumplines(buflist, activebufline)
   return reverse(<SID>unique_list(jumplines))
 endfunction
 
+function! <SID>clear_searchmode()
+  let s:search_letters = []
+  let s:searchmode = 0
+  call <SID>kill(0, 0)
+  call <SID>tab_friends_toggle(1)
+endfunction
+
+function! <SID>add_search_letter(letter)
+  call add(s:search_letters, a:letter)
+  call <SID>kill(0, 0)
+  call <SID>tab_friends_toggle(1)
+endfunction
+
+function! <SID>remove_search_letter()
+  call remove(s:search_letters, -1)
+  call <SID>kill(0, 0)
+  call <SID>tab_friends_toggle(1)
+endfunction
+
+function! <SID>switch_searchmode(switch)
+  let s:searchmode = a:switch
+  call <SID>kill(0, 0)
+  call <SID>tab_friends_toggle(1)
+endfunction
+
 function! <SID>unique_list(list)
   return filter(copy(a:list), 'index(a:list, v:val, v:key + 1) == -1')
 endfunction
@@ -252,6 +284,94 @@ function! <SID>kill(buflistnr, final)
   endif
 endfunction
 
+function! <SID>keypressed(key)
+  if s:nopmode
+    if a:key ==# "a"
+      call <SID>toggle_tab()
+    end
+    if s:searchmode
+      if a:key ==# "BS"
+        if empty(s:search_letters)
+          call <SID>clear_searchmode()
+        else
+          call <SID>remove_search_letter()
+        endif
+      endif
+    endif
+    return
+  endif
+
+  if s:searchmode
+    if a:key ==# "BS"
+      if empty(s:search_letters)
+        call <SID>clear_searchmode()
+      else
+        call <SID>remove_search_letter()
+      endif
+    elseif (a:key ==# "/") || (a:key ==# "CR")
+      call <SID>switch_searchmode(0)
+    elseif strlen(a:key) == 1
+      call <SID>add_search_letter(a:key)
+    endif
+  else
+    if a:key ==# "CR"
+      call <SID>load_buffer()
+    elseif a:key ==# "BS"
+      call <SID>clear_searchmode()
+    elseif a:key ==# "/"
+      call <SID>switch_searchmode(1)
+    elseif a:key ==# "v"
+      call <SID>load_buffer("vs")
+    elseif a:key ==# "s"
+      call <SID>load_buffer("sp")
+    elseif a:key ==# "t"
+      call <SID>load_buffer("tabnew")
+    elseif a:key ==# "o"
+      call <SID>toggle_order()
+    elseif a:key ==# "q"
+      call <SID>kill(0, 1)
+    elseif a:key ==# "j"
+      call <SID>move("down")
+    elseif a:key ==# "k"
+      call <SID>move("up")
+    elseif a:key ==# "p"
+      call <SID>jump("previous")
+    elseif a:key ==# "P"
+      call <SID>jump("previous")
+      call <SID>load_buffer()
+    elseif a:key ==# "n"
+      call <SID>jump("next")
+    elseif a:key ==# "d"
+      call <SID>delete_buffer()
+    elseif a:key ==# "D"
+      call <SID>delete_hidden_buffers()
+    elseif a:key ==# "MouseDown"
+      call <SID>move("up")
+    elseif a:key ==# "MouseUp"
+      call <SID>move("down")
+    elseif a:key ==# "LeftRelease"
+      call <SID>move("mouse")
+    elseif a:key ==# "2-LeftMouse"
+      call <SID>move("mouse")
+      call <SID>load_buffer()
+    elseif a:key ==# "Down"
+      call feedkeys("j")
+    elseif a:key ==# "Up"
+      call feedkeys("k")
+    elseif a:key ==# "Home"
+      call <SID>move(1)
+    elseif a:key ==# "End"
+      call <SID>move(line("$"))
+    elseif a:key ==# "a"
+      call <SID>toggle_tab()
+    elseif a:key ==# "f"
+      call <SID>detach_tab_friend()
+    elseif a:key ==# "F"
+      call <SID>delete_foreign_buffers()
+    endif
+  endif
+endfunction
+
 function! <SID>set_up_buffer()
   setlocal noshowcmd
   setlocal noswapfile
@@ -277,6 +397,16 @@ function! <SID>set_up_buffer()
         let &l:statusline .= " [ABC]"
       endif
     endif
+
+    if s:searchmode || !empty(s:search_letters)
+      let &l:statusline .= " →[" . join(s:search_letters, "")
+
+      if s:searchmode
+        let &l:statusline .= "_"
+      endif
+
+      let &l:statusline .= "]←"
+    endif
   endif
 
   if &timeout
@@ -301,41 +431,19 @@ function! <SID>set_up_buffer()
   endif
 
   " set up the keymap
-  noremap <silent> <buffer> <CR> :call <SID>load_buffer()<CR>
-  noremap <silent> <buffer> v :call <SID>load_buffer("vs")<CR>
-  noremap <silent> <buffer> s :call <SID>load_buffer("sp")<CR>
-  noremap <silent> <buffer> t :call <SID>load_buffer("tabnew")<CR>
-  map <silent> <buffer> o :call <SID>toggle_order()<CR>
-  map <silent> <buffer> q :call <SID>kill(0, 1)<CR>
-  map <silent> <buffer> j :call <SID>move("down")<CR>
-  map <silent> <buffer> k :call <SID>move("up")<CR>
-  map <silent> <buffer> p :call <SID>jump("previous")<CR>
-  map <silent> <buffer> P :call <SID>jump("previous")<CR>:call <SID>load_buffer()<CR>
-  map <silent> <buffer> n :call <SID>jump("next")<CR>
-  map <silent> <buffer> d :call <SID>delete_buffer()<CR>
-  map <silent> <buffer> D :call <SID>delete_hidden_buffers()<CR>
-  map <silent> <buffer> <MouseDown> :call <SID>move("up")<CR>
-  map <silent> <buffer> <MouseUp> :call <SID>move("down")<CR>
-  map <silent> <buffer> <LeftDrag> <Nop>
-  map <silent> <buffer> <LeftRelease> :call <SID>move("mouse")<CR>
-  map <silent> <buffer> <2-LeftMouse> :call <SID>move("mouse")<CR>:call <SID>load_buffer()<CR>
-  map <silent> <buffer> <Down> j
-  map <silent> <buffer> <Up> k
-  map <buffer> h <Nop>
-  map <buffer> l <Nop>
-  map <buffer> <Left> <Nop>
-  map <buffer> <Right> <Nop>
-  map <buffer> i <Nop>
-  map <buffer> a <Nop>
-  map <buffer> I <Nop>
-  map <buffer> A <Nop>
-  map <buffer> O <Nop>
-  map <silent> <buffer> <Home> :call <SID>move(1)<CR>
-  map <silent> <buffer> <End> :call <SID>move(line("$"))<CR>
-
-  map <silent> <buffer> a :call <SID>toggle_tab()<CR>
-  map <silent> <buffer> f :call <SID>detach_tab_friend()<CR>
-  map <silent> <buffer> F :call <SID>delete_foreign_buffers()<CR>
+  let lowercase_letters = "q w e r t y u i o p a s d f g h j k l z x c v b n m"
+  let uppercase_letters = toupper(lowercase_letters)
+  let numbers = "1 2 3 4 5 6 7 8 9 0"
+  let special_chars = "CR BS / MouseDown MouseUp LeftDrag LeftRelease 2-LeftMouse Down Up Home End Left Right"
+  let key_chars = split(lowercase_letters . " " . uppercase_letters . " " . numbers . " " . special_chars, " ")
+  for key_char in key_chars
+    if strlen(key_char) > 1
+      let key = "<" . key_char . ">"
+    else
+      let key = key_char
+    endif
+    silent! exe "noremap <silent><buffer> " . key . " :call <SID>keypressed(\"" . key_char . "\")<CR>"
+  endfor
 endfunction
 
 function! <SID>make_filler(width)
@@ -394,6 +502,8 @@ function! <SID>display_list(displayedbufs, buflist, width)
     while winheight(0) > line(".")
       silent! put =fill
     endwhile
+
+    let s:nopmode = 0
   else
     let empty_list_message = "  List empty"
     let width = a:width
@@ -441,30 +551,7 @@ function! <SID>display_list(displayedbufs, buflist, width)
       endif
     endif
 
-    noremap <silent> <buffer> <CR> <Nop>
-    noremap <silent> <buffer> v <Nop>
-    noremap <silent> <buffer> s <Nop>
-    noremap <silent> <buffer> t <Nop>
-    noremap <silent> <buffer> j <Nop>
-    noremap <silent> <buffer> k <Nop>
-    noremap <silent> <buffer> d <Nop>
-    noremap <silent> <buffer> D <Nop>
-    noremap <silent> <buffer> p <Nop>
-    noremap <silent> <buffer> P <Nop>
-    noremap <silent> <buffer> n <Nop>
-    noremap <silent> <buffer> o <Nop>
-    noremap <silent> <buffer> <MouseDown> <Nop>
-    noremap <silent> <buffer> <MouseUp> <Nop>
-    noremap <silent> <buffer> <LeftDrag> <Nop>
-    noremap <silent> <buffer> <LeftRelease> <Nop>
-    noremap <silent> <buffer> <2-LeftMouse> <Nop>
-    noremap <silent> <buffer> <Down> <Nop>
-    noremap <silent> <buffer> <Up> <Nop>
-    map <silent> <buffer> <Home> <Nop>
-    map <silent> <buffer> <End> <Nop>
-
-    map <silent> <buffer> f :call <Nop>
-    map <silent> <buffer> F :call <Nop>
+    let s:nopmode = 1
   endif
   setlocal nomodifiable
 endfunction
