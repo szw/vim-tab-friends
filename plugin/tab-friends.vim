@@ -39,13 +39,12 @@ call <SID>define_config_variable("cyclic_list", 1)
 call <SID>define_config_variable("max_jumps", 100)
 call <SID>define_config_variable("default_sort_order", 1) " 0 - no sort, 1 - chronological, 2 - alphanumeric
 
-call <SID>define_config_variable("status_separator", "│")
 call <SID>define_config_variable("status_name", "TAB♡FRIENDS")
-call <SID>define_config_variable("status_all", "∷")
-call <SID>define_config_variable("status_tab", "∙")
-call <SID>define_config_variable("status_sort_chrono", "₁²₃")
-call <SID>define_config_variable("status_sort_alpha", "∧вс")
-call <SID>define_config_variable("status_search_left", "→[")
+call <SID>define_config_variable("status_all", " [ ∷ ]")
+call <SID>define_config_variable("status_tab", " [ ∙ ]")
+call <SID>define_config_variable("status_sort_chrono", " [₁²₃]")
+call <SID>define_config_variable("status_sort_alpha", " [∧вс]")
+call <SID>define_config_variable("status_search_left", " →[")
 call <SID>define_config_variable("status_search_right", "]←")
 
 command! -nargs=0 -range TabFriends :call <SID>tab_friends_toggle(0)
@@ -378,21 +377,21 @@ function! <SID>set_up_buffer()
   if has('statusline')
     let &l:statusline = g:tab_friends_status_name
     if s:tab_toggle
-      let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_tab
+      let &l:statusline .= g:tab_friends_status_tab
     else
-      let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_all
+      let &l:statusline .= g:tab_friends_status_all
     endif
 
     if exists("t:sort_order")
       if t:sort_order == 1
-        let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_sort_chrono
+        let &l:statusline .= g:tab_friends_status_sort_chrono
       elseif t:sort_order == 2
-        let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_sort_alpha
+        let &l:statusline .= g:tab_friends_status_sort_alpha
       endif
     endif
 
     if s:searchmode || !empty(s:search_letters)
-      let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_search_left . join(s:search_letters, "")
+      let &l:statusline .= g:tab_friends_status_search_left . join(s:search_letters, "")
 
       if s:searchmode
         let &l:statusline .= "_"
