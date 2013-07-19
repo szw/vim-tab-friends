@@ -39,14 +39,6 @@ call <SID>define_config_variable("cyclic_list", 1)
 call <SID>define_config_variable("max_jumps", 100)
 call <SID>define_config_variable("default_sort_order", 1) " 0 - no sort, 1 - chronological, 2 - alphanumeric
 
-call <SID>define_config_variable("status_name", "TAB♡FRIENDS")
-call <SID>define_config_variable("status_all", " [ ∷ ]")
-call <SID>define_config_variable("status_tab", " [ ∙ ]")
-call <SID>define_config_variable("status_sort_chrono", " [₁²₃]")
-call <SID>define_config_variable("status_sort_alpha", " [∧вс]")
-call <SID>define_config_variable("status_search_left", " →[")
-call <SID>define_config_variable("status_search_right", "]←")
-
 command! -nargs=0 -range TabFriends :call <SID>tab_friends_toggle(0)
 
 if g:tab_friends_set_default_mapping
@@ -375,29 +367,29 @@ function! <SID>set_up_buffer()
   setlocal nonumber
 
   if has('statusline')
-    let &l:statusline = g:tab_friends_status_name
+    let &l:statusline = "TAB♡FRIENDS"
     if s:tab_toggle
-      let &l:statusline .= g:tab_friends_status_tab
+      let &l:statusline .= " [ ∙ ]"
     else
-      let &l:statusline .= g:tab_friends_status_all
+      let &l:statusline .= " [ ∷ ]"
     endif
 
     if exists("t:sort_order")
       if t:sort_order == 1
-        let &l:statusline .= g:tab_friends_status_sort_chrono
+        let &l:statusline .= " [₁²₃]"
       elseif t:sort_order == 2
-        let &l:statusline .= g:tab_friends_status_sort_alpha
+        let &l:statusline .= " [∧вс]"
       endif
     endif
 
     if s:searchmode || !empty(s:search_letters)
-      let &l:statusline .= g:tab_friends_status_search_left . join(s:search_letters, "")
+      let &l:statusline .=  " →[" . join(s:search_letters, "")
 
       if s:searchmode
         let &l:statusline .= "_"
       endif
 
-      let &l:statusline .= g:tab_friends_status_search_right
+      let &l:statusline .= "]←"
     endif
   endif
 
