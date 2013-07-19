@@ -21,42 +21,32 @@
 if exists('g:tab_friends_loaded')
   finish
 endif
+
 let g:tab_friends_loaded = 1
 
-if !exists('g:tab_friends_height')
-  let g:tab_friends_height = 1
-endif
+function! <SID>define_config_variable(name, default_value)
+  if !exists("g:tab_friends_" . a:name)
+    let g:{"tab_friends_" . a:name} = a:default_value
+  endif
+endfunction
 
-if !exists('g:tab_friends_max_height')
-  let g:tab_friends_max_height = 25
-endif
+call <SID>define_config_variable("height", 1)
+call <SID>define_config_variable("max_height", 25)
+call <SID>define_config_variable("show_unnamed", 2)
+call <SID>define_config_variable("set_default_mapping", 1)
+call <SID>define_config_variable("default_mapping_key", "<F2>")
+call <SID>define_config_variable("cyclic_list", 1)
+call <SID>define_config_variable("max_jumps", 100)
+call <SID>define_config_variable("default_sort_order", 1) " 0 - no sort, 1 - chronological, 2 - alphanumeric
 
-if !exists('g:tab_friends_show_unnamed')
-  let g:tab_friends_show_unnamed = 2
-endif
-
-if !exists('g:tab_friends_set_default_mapping')
-    let g:tab_friends_set_default_mapping = 1
-endif
-
-if !exists('g:tab_friends_default_mapping_key')
-    let g:tab_friends_default_mapping_key = '<F2>'
-endif
-
-if !exists('g:tab_friends_cyclic_list')
-  let g:tab_friends_cyclic_list = 1
-endif
-
-if !exists('g:tab_friends_max_jumps')
-  let g:tab_friends_max_jumps = 100
-endif
-
-" 0 - no sort
-" 1 - chronological
-" 2 - alphanumeric
-if !exists('g:tab_friends_default_sort_order')
-  let g:tab_friends_default_sort_order = 1
-endif
+call <SID>define_config_variable("status_separator", "│")
+call <SID>define_config_variable("status_name", "TAB♡FRIENDS")
+call <SID>define_config_variable("status_all", "∷")
+call <SID>define_config_variable("status_tab", "∙")
+call <SID>define_config_variable("status_sort_chrono", "₁²₃")
+call <SID>define_config_variable("status_sort_alpha", "∧вс")
+call <SID>define_config_variable("status_search_left", "→[")
+call <SID>define_config_variable("status_search_right", "]←")
 
 command! -nargs=0 -range TabFriends :call <SID>tab_friends_toggle(0)
 
@@ -386,30 +376,29 @@ function! <SID>set_up_buffer()
   setlocal nonumber
 
   if has('statusline')
-    setl stl="hello "
-    let &l:statusline = "TAB♡FRIENDS"
+    let &l:statusline = g:tab_friends_status_name
     if s:tab_toggle
-      let &l:statusline .= " │ ∙"
+      let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_tab
     else
-      let &l:statusline .= " │ ∷"
+      let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_all
     endif
 
     if exists("t:sort_order")
       if t:sort_order == 1
-        let &l:statusline .= " │ ₁²₃"
+        let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_sort_chrono
       elseif t:sort_order == 2
-        let &l:statusline .= " │ авс"
+        let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_sort_alpha
       endif
     endif
 
     if s:searchmode || !empty(s:search_letters)
-      let &l:statusline .= " │ →[" . join(s:search_letters, "")
+      let &l:statusline .= " " . g:tab_friends_status_separator . " " . g:tab_friends_status_search_left . join(s:search_letters, "")
 
       if s:searchmode
         let &l:statusline .= "_"
       endif
 
-      let &l:statusline .= "]←"
+      let &l:statusline .= g:tab_friends_status_search_right
     endif
   endif
 
