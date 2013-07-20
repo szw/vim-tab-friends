@@ -52,6 +52,34 @@ au BufEnter * call <SID>add_tab_friend()
 let s:tab_friends_jumps = []
 au BufEnter * call <SID>add_jump()
 
+function! TabFriends(tab)
+  let pretty_friends = {}
+  let tab_friends = gettabvar(a:tab, "tab_friends_list")
+  let visible_buffers = tabpagebuflist(a:tab)
+
+  if type(tab_friends) != 4
+    return pretty_friends
+  endif
+
+  for i in keys(tab_friends)
+    let i = str2nr(i)
+
+    let bufname = bufname(i)
+
+    if g:tab_friends_show_unnamed && !strlen(bufname)
+      if !((g:tab_friends_show_unnamed == 2) && !getbufvar(i, '&modified')) || (index(visible_buffers, i) != -1)
+        let bufname = '[' . i . '*No Name]'
+      endif
+    endif
+
+    if strlen(bufname) && getbufvar(i, '&modifiable') && getbufvar(i, '&buflisted')
+      let pretty_friends[i] = bufname
+    endif
+  endfor
+
+  return pretty_friends
+endfunction
+
 " toggled the buffer list on/off
 function! <SID>tab_friends_toggle(internal)
   if !a:internal
