@@ -1,6 +1,6 @@
 " Vim TabFriends - Make buffers and tabs friendship ;)
 " Maintainer:   Szymon Wrozynski
-" Version:      3.0.1
+" Version:      3.0.2
 "
 " Installation:
 " Place in ~/.vim/plugin/tab_friends.vim or in case of Pathogen:
@@ -37,7 +37,7 @@ call <SID>define_config_variable("set_default_mapping", 1)
 call <SID>define_config_variable("default_mapping_key", "<F2>")
 call <SID>define_config_variable("cyclic_list", 1)
 call <SID>define_config_variable("max_jumps", 100)
-call <SID>define_config_variable("default_sort_order", 1) " 0 - no sort, 1 - chronological, 2 - alphanumeric
+call <SID>define_config_variable("default_sort_order", 2) " 0 - no sort, 1 - chronological, 2 - alphanumeric
 
 command! -nargs=0 -range TabFriends :call <SID>tab_friends_toggle(0)
 
@@ -397,21 +397,21 @@ function! <SID>set_up_buffer()
   if has('statusline')
     let &l:statusline = "TAB♡FRIENDS"
     if s:tab_toggle
-      let &l:statusline .= " [ ∙ ]"
+      let &l:statusline .= "  [∙]"
     else
-      let &l:statusline .= " [ ∷ ]"
+      let &l:statusline .= "  [∷]"
     endif
 
     if exists("t:sort_order")
       if t:sort_order == 1
-        let &l:statusline .= " [₁²₃]"
+        let &l:statusline .= "  [₁²₃]"
       elseif t:sort_order == 2
-        let &l:statusline .= " [∧вс]"
+        let &l:statusline .= "  [∧вс]"
       endif
     endif
 
     if s:searchmode || !empty(s:search_letters)
-      let &l:statusline .=  " →[" . join(s:search_letters, "")
+      let &l:statusline .=  "  →[" . join(s:search_letters, "")
 
       if s:searchmode
         let &l:statusline .= "_"
