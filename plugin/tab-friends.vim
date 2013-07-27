@@ -395,11 +395,10 @@ function! <SID>set_up_buffer()
   setlocal nonumber
 
   if has('statusline')
-    let &l:statusline = "TAB♡FRIENDS"
     if s:tab_toggle
-      let &l:statusline .= "  [∙]"
+      let &l:statusline = "[∙]"
     else
-      let &l:statusline .= "  [∷]"
+      let &l:statusline = "[∷]"
     endif
 
     if exists("t:sort_order")
