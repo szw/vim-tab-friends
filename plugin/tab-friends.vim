@@ -1,6 +1,6 @@
 " Vim TabFriends - Make buffers and tabs friendship ;)
 " Maintainer:   Szymon Wrozynski
-" Version:      3.0.2
+" Version:      3.0.3
 "
 " Installation:
 " Place in ~/.vim/plugin/tab_friends.vim or in case of Pathogen:
@@ -35,16 +35,31 @@ call <SID>define_config_variable("max_height", 25)
 call <SID>define_config_variable("show_unnamed", 2)
 call <SID>define_config_variable("set_default_mapping", 1)
 call <SID>define_config_variable("default_mapping_key", "<F2>")
+call <SID>define_config_variable("default_label_mapping_key", "<F12>")
 call <SID>define_config_variable("cyclic_list", 1)
 call <SID>define_config_variable("max_jumps", 100)
 call <SID>define_config_variable("default_sort_order", 2) " 0 - no sort, 1 - chronological, 2 - alphanumeric
+call <SID>define_config_variable("enable_tabline", 1)
 
 command! -nargs=0 -range TabFriends :call <SID>tab_friends_toggle(0)
+command! -nargs=0 -range TabFriendsLabel :call <SID>new_tab_label()
+
+if g:tab_friends_enable_tabline
+  set tabline=%!TabFriendsTabLine()
+endif
 
 if g:tab_friends_set_default_mapping
-  silent! exe 'nnoremap <silent>' . g:tab_friends_default_mapping_key . ' :TabFriends<CR>'
-  silent! exe 'vnoremap <silent>' . g:tab_friends_default_mapping_key . ' :TabFriends<CR>'
-  silent! exe 'inoremap <silent>' . g:tab_friends_default_mapping_key . ' <C-[>:TabFriends<CR>'
+  if !empty(g:tab_friends_default_mapping_key)
+    silent! exe 'nnoremap <silent>' . g:tab_friends_default_mapping_key . ' :TabFriends<CR>'
+    silent! exe 'vnoremap <silent>' . g:tab_friends_default_mapping_key . ' :TabFriends<CR>'
+    silent! exe 'inoremap <silent>' . g:tab_friends_default_mapping_key . ' <C-[>:TabFriends<CR>'
+  endif
+
+  if !empty(g:tab_friends_default_label_mapping_key)
+    silent! exe 'nnoremap <silent>' . g:tab_friends_default_label_mapping_key . ' :TabFriendsLabel<CR>'
+    silent! exe 'vnoremap <silent>' . g:tab_friends_default_label_mapping_key . ' :TabFriendsLabel<CR>gv'
+    silent! exe 'inoremap <silent>' . g:tab_friends_default_label_mapping_key . ' <C-o>:TabFriendsLabel<CR>'
+  endif
 endif
 
 au BufEnter * call <SID>add_tab_friend()
@@ -52,10 +67,10 @@ au BufEnter * call <SID>add_tab_friend()
 let s:tab_friends_jumps = []
 au BufEnter * call <SID>add_jump()
 
-function! TabFriends(tab)
+function! TabFriends(tabnr)
   let pretty_friends = {}
-  let tab_friends = gettabvar(a:tab, "tab_friends_list")
-  let visible_buffers = tabpagebuflist(a:tab)
+  let tab_friends = gettabvar(a:tabnr, "tab_friends_list")
+  let visible_buffers = tabpagebuflist(a:tabnr)
 
   if type(tab_friends) != 4
     return pretty_friends
@@ -78,6 +93,74 @@ function! TabFriends(tab)
   endfor
 
   return pretty_friends
+endfunction
+
+function! TabFriendsTabLine()
+  let last_tab = tabpagenr("$")
+  let tabline = ''
+
+  for t in range(1, last_tab)
+    let winnr = tabpagewinnr(t)
+    let buflist = tabpagebuflist(t)
+    let bufnr = buflist[winnr - 1]
+    let bufname = bufname(bufnr)
+    let friends_number = len(TabFriends(t))
+    let friends_number_to_show = ""
+
+    if friends_number > 1
+      let small_numbers = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"]
+      let number_str = string(friends_number)
+
+      for i in range(0, len(number_str) - 1)
+        let friends_number_to_show .= small_numbers[str2nr(number_str[i])]
+      endfor
+    endif
+
+    let label = gettabvar(t, "tab_friends_label")
+
+    if empty(label)
+      if empty(bufname)
+        let label = '[' . bufnr . '*No Name]'
+      else
+        let label = fnamemodify(bufname, ':t')
+      endif
+    endif
+
+    let tabline .= '%' . t . 'T'
+    let tabline .= (t == tabpagenr() ? '%#TabLineSel#' : '%#TabLine#')
+    let tabline .= ' ' . t . friends_number_to_show . ' '
+
+    if <SID>tab_contains_modified_buffers(t)
+      let tabline .= '+ '
+    endif
+
+    let tabline .= label . ' '
+  endfor
+
+  let tabline .= '%#TabLineFill#%T'
+
+  if last_tab > 1
+    let tabline .= '%='
+    let tabline .= '%#TabLine#%999XX'
+  endif
+
+  return tabline
+endfunction
+
+function! <SID>new_tab_label()
+  call inputsave()
+  let t:tab_friends_label = input('Label for tab ' . tabpagenr() . ': ')
+  call inputrestore()
+  redraw!
+endfunction
+
+function! <SID>tab_contains_modified_buffers(tabnr)
+  for b in map(keys(TabFriends(a:tabnr)), "str2nr(v:val)")
+    if getbufvar(b, '&modified')
+      return 1
+    endif
+  endfor
+  return 0
 endfunction
 
 " toggled the buffer list on/off
@@ -817,4 +900,3 @@ function! <SID>detach_tab_friend()
     call <SID>tab_friends_toggle(1)
   endif
 endfunction
-
