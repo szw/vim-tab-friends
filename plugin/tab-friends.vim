@@ -1,6 +1,6 @@
 " Vim TabFriends - Make buffers and tabs friendship ;)
 " Maintainer:   Szymon Wrozynski
-" Version:      3.0.3
+" Version:      3.0.4
 "
 " Installation:
 " Place in ~/.vim/plugin/tab_friends.vim or in case of Pathogen:
@@ -61,6 +61,8 @@ if g:tab_friends_set_default_mapping
     silent! exe 'inoremap <silent>' . g:tab_friends_default_label_mapping_key . ' <C-o>:TabFriendsLabel<CR>'
   endif
 endif
+
+let s:preview_mode = 0
 
 au BufEnter * call <SID>add_tab_friend()
 
@@ -329,11 +331,14 @@ endfunction
 function! <SID>decorate_with_indicators(name, bufnum)
   let indicators = ' '
 
-  if bufwinnr(a:bufnum) != -1
-    let indicators .= '∗'
+  if s:preview_mode && (s:preview_mode_orginal_buffer == a:bufnum)
+    let indicators .= "☆"
+  elseif bufwinnr(a:bufnum) != -1
+    let indicators .= "★"
   endif
-  if getbufvar(a:bufnum, '&modified')
-    let indicators .= '+'
+
+  if getbufvar(a:bufnum, "&modified")
+    let indicators .= "+"
   endif
 
   if len(indicators) > 1
@@ -354,7 +359,27 @@ function! <SID>find_activebufline(activebuf, buflist)
   return activebufline
 endfunction
 
+function! <SID>go_to_start_window()
+  if exists("t:tab_friends_start_window")
+    silent! exe t:tab_friends_start_window . "wincmd w"
+  endif
+
+  if exists("t:tab_friends_winrestcmd") && (winrestcmd() != t:tab_friends_winrestcmd)
+    silent! exe t:tab_friends_winrestcmd
+
+    if winrestcmd() != t:tab_friends_winrestcmd
+      wincmd =
+    endif
+  endif
+endfunction
+
 function! <SID>kill(buflistnr, final)
+  if exists("s:killing_now") && s:killing_now
+    return
+  endif
+
+  let s:killing_now = 1
+
   if a:buflistnr
     silent! exe ':' . a:buflistnr . 'bwipeout'
   else
@@ -362,18 +387,16 @@ function! <SID>kill(buflistnr, final)
   end
 
   if a:final
-    if exists("t:tab_friends_start_window")
-      silent! exe t:tab_friends_start_window . "wincmd w"
-    endif
+    call <SID>go_to_start_window()
 
-    if exists("t:tab_friends_winrestcmd") && (winrestcmd() != t:tab_friends_winrestcmd)
-      silent! exe t:tab_friends_winrestcmd
-
-      if winrestcmd() != t:tab_friends_winrestcmd
-        wincmd =
-      endif
+    if s:preview_mode
+      exec ":b " . s:preview_mode_orginal_buffer
+      unlet s:preview_mode_orginal_buffer
+      let s:preview_mode = 0
     endif
   endif
+
+  unlet s:killing_now
 endfunction
 
 function! <SID>keypressed(key)
@@ -411,6 +434,8 @@ function! <SID>keypressed(key)
   else
     if a:key ==# "CR"
       call <SID>load_buffer()
+    elseif a:key ==# "Space"
+      call <SID>preview_buffer()
     elseif a:key ==# "BS"
       call <SID>clear_searchmode()
     elseif a:key ==# "/"
@@ -492,6 +517,10 @@ function! <SID>set_up_buffer()
       endif
     endif
 
+    if s:preview_mode
+      let &l:statusline .= "  [⌕]"
+    endif
+
     if s:searchmode || !empty(s:search_letters)
       let &l:statusline .=  "  →[" . join(s:search_letters, "")
 
@@ -528,7 +557,7 @@ function! <SID>set_up_buffer()
   let lowercase_letters = "q w e r t y u i o p a s d f g h j k l z x c v b n m"
   let uppercase_letters = toupper(lowercase_letters)
   let numbers = "1 2 3 4 5 6 7 8 9 0"
-  let special_chars = "CR BS / MouseDown MouseUp LeftDrag LeftRelease 2-LeftMouse Down Up Home End Left Right"
+  let special_chars = "Space CR BS / MouseDown MouseUp LeftDrag LeftRelease 2-LeftMouse Down Up Home End Left Right"
   let key_chars = split(lowercase_letters . " " . uppercase_letters . " " . numbers . " " . special_chars, " ")
   for key_char in key_chars
     if strlen(key_char) > 1
@@ -751,6 +780,23 @@ function! <SID>load_buffer(...)
   exec ":b " . nr
 endfunction
 
+function! <SID>preview_buffer()
+  if !s:preview_mode
+    let s:preview_mode = 1
+    let s:preview_mode_orginal_buffer = winbufnr(t:tab_friends_start_window)
+  endif
+
+  let nr = <SID>get_selected_buffer()
+
+  call <SID>kill(0, 0)
+
+  call <SID>go_to_start_window()
+  exec ":b " . nr
+  exec "normal! zb"
+
+  call <SID>tab_friends_toggle(1)
+endfunction
+
 function! <SID>load_buffer_into_window(winnr)
   if exists("t:tab_friends_start_window")
     let old_start_window = t:tab_friends_start_window
@@ -826,6 +872,10 @@ function! <SID>get_selected_buffer()
 endfunction
 
 function! <SID>add_tab_friend()
+  if s:preview_mode
+    return
+  endif
+
   if !exists('t:tab_friends_list')
     let t:tab_friends_list = {}
   endif
@@ -838,6 +888,10 @@ function! <SID>add_tab_friend()
 endfunction
 
 function! <SID>add_jump()
+  if s:preview_mode
+    return
+  endif
+
   if !exists("t:tab_friends_jumps")
     let t:tab_friends_jumps = []
   endif
