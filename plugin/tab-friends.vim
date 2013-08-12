@@ -1,6 +1,6 @@
 " Vim TabFriends - Make buffers and tabs friendship ;)
 " Maintainer:   Szymon Wrozynski
-" Version:      3.0.5
+" Version:      3.0.6
 "
 " Installation:
 " Place in ~/.vim/plugin/tab_friends.vim or in case of Pathogen:
@@ -123,6 +123,8 @@ function! TabFriendsTabLine()
     if empty(label)
       if empty(bufname)
         let label = '[' . bufnr . '*No Name]'
+      elseif bufname ==# "__TAB_FRIENDS__"
+        let label = "Select a buffer..."
       else
         let label = fnamemodify(bufname, ':t')
       endif
