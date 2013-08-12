@@ -1,6 +1,6 @@
 " Vim TabFriends - Make buffers and tabs friendship ;)
 " Maintainer:   Szymon Wrozynski
-" Version:      3.0.4
+" Version:      3.0.5
 "
 " Installation:
 " Place in ~/.vim/plugin/tab_friends.vim or in case of Pathogen:
@@ -829,16 +829,36 @@ function! <SID>delete_buffer()
       call <SID>kill(0, 0)
     endif
     exec ":bdelete " . nr
+    call <SID>forget_buffers_in_all_tabs([nr])
     call <SID>tab_friends_toggle(1)
   endif
 endfunction
 
+function! <SID>forget_buffers_in_all_tabs(numbers)
+  for t in range(1, tabpagenr("$"))
+    let friends_list = gettabvar(t, "tab_friends_list")
+
+    for nr in a:numbers
+      if exists("friends_list[" . nr . "]")
+        call remove(friends_list, nr)
+      endif
+    endfor
+
+    call settabvar(t, "tab_friends_list", friends_list)
+  endfor
+endfunction
+
 function! <SID>keep_buffers_for_keys(dict)
+  let removed = []
+
   for b in range(1, bufnr('$'))
     if buflisted(b) && !has_key(a:dict, b) && !getbufvar(b, '&modified')
       exe ':bdelete ' . b
+      call add(removed, b)
     endif
   endfor
+
+  return removed
 endfunction
 
 " deletes all hidden buffers
@@ -850,8 +870,15 @@ function! <SID>delete_hidden_buffers()
       let visible[b] = 1
     endfor
   endfor
+
   call <SID>kill(0, 0)
-  call <SID>keep_buffers_for_keys(visible)
+
+  let removed = <SID>keep_buffers_for_keys(visible)
+
+  if !empty(removed)
+    call <SID>forget_buffers_in_all_tabs(removed)
+  endif
+
   call <SID>tab_friends_toggle(1)
 endfunction
 
